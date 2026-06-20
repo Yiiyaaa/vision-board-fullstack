@@ -1,0 +1,19 @@
+# Python / Django
+backend/.venv/
+__pycache__/
+*.pyc
+backend/db.sqlite3
+*.log
+
+# Node / Vue
+frontend/node_modules/
+frontend/dist/
+
+# Local tooling (machine-specific paths)
+.claude/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
