@@ -97,6 +97,66 @@ const PHRASES = [
   "一次只做好一件事",
 ];
 
+/* ── Layout templates ────────────────────────────────────────────── */
+/* Dynamic slot generators: compute from actual photo count */
+function magazineSlots(n) {
+  if (n <= 1) return [{x:0,y:0,w:1,h:1}];
+  if (n === 2) return [{x:0,y:0,w:.55,h:1},{x:.55,y:0,w:.45,h:1}];
+  const lw = 0.56, rw = 0.44, rh = 1 / (n - 1);
+  const slots = [{x:0,y:0,w:lw,h:1}];
+  for (let i = 0; i < n - 1; i++) slots.push({x:lw,y:i*rh,w:rw,h:rh});
+  return slots;
+}
+function surroundSlots(n) {
+  if (n <= 1) return [{x:0,y:0,w:1,h:1}];
+  if (n === 2) return [{x:0,y:0,w:.5,h:1},{x:.5,y:0,w:.5,h:1}];
+  /* 1 center + floor((n-1)/2) left column + ceil((n-1)/2) right column */
+  const lCount = Math.floor((n - 1) / 2);
+  const rCount = n - 1 - lCount;
+  const lw = 0.22, rw = 0.22, cw = 1 - lw - rw;
+  const slots = [{x:lw,y:0,w:cw,h:1}]; /* center first (index 0 = main photo) */
+  for (let i = 0; i < lCount; i++) slots.push({x:0,y:i/lCount,w:lw,h:1/lCount});
+  for (let i = 0; i < rCount; i++) slots.push({x:lw+cw,y:i/rCount,w:rw,h:1/rCount});
+  return slots;
+}
+/* 海报: large top hero + equal bottom strip */
+function posterSlots(n) {
+  if (n <= 1) return [{x:0,y:0,w:1,h:1}];
+  const th = 0.62;
+  const slots = [{x:0,y:0,w:1,h:th}];
+  const bw = 1 / (n - 1);
+  for (let i = 0; i < n - 1; i++) slots.push({x:i*bw,y:th,w:bw,h:1-th});
+  return slots;
+}
+/* 序列: n equal-width vertical strips */
+function stripSlots(n) {
+  if (n <= 1) return [{x:0,y:0,w:1,h:1}];
+  const w = 1 / n;
+  return Array.from({length: n}, (_, i) => ({x:i*w,y:0,w,h:1}));
+}
+/* 田字: balanced grid, sqrt-derived column count */
+function gridSlots(n) {
+  if (n <= 1) return [{x:0,y:0,w:1,h:1}];
+  const cols = Math.ceil(Math.sqrt(n));
+  const rows = Math.ceil(n / cols);
+  const cw = 1 / cols, rh = 1 / rows;
+  return Array.from({length: n}, (_, i) => ({x:(i%cols)*cw,y:Math.floor(i/cols)*rh,w:cw,h:rh}));
+}
+
+const TEMPLATES = [
+  /* Static (count shown as badge; extra/missing photos trigger a hint) */
+  { id: 'lr2',   name: '左右',  count: 2, slots: [{x:0,y:0,w:.5,h:1},{x:.5,y:0,w:.5,h:1}] },
+  { id: 'tri3',  name: '主从',  count: 3, slots: [{x:0,y:0,w:.58,h:1},{x:.58,y:0,w:.42,h:.5},{x:.58,y:.5,w:.42,h:.5}] },
+  { id: 'feat3', name: '上下',  count: 3, slots: [{x:0,y:0,w:1,h:.58},{x:0,y:.58,w:.5,h:.42},{x:.5,y:.58,w:.5,h:.42}] },
+  { id: 'grid4', name: '四宫',  count: 4, slots: [{x:0,y:0,w:.5,h:.5},{x:.5,y:0,w:.5,h:.5},{x:0,y:.5,w:.5,h:.5},{x:.5,y:.5,w:.5,h:.5}] },
+  /* Dynamic (fit any number of photos automatically) */
+  { id: 'magazine', name: '杂志', dynamic: 'magazine' },
+  { id: 'surround', name: '围绕', dynamic: 'surround' },
+  { id: 'poster',   name: '海报', dynamic: 'poster' },
+  { id: 'strip',    name: '序列', dynamic: 'strip' },
+  { id: 'grid',     name: '田字', dynamic: 'grid' },
+];
+
 /* ── PaddedText: IText subclass — bg box + stroke + shadow + glow ── */
 function roundRectPath(ctx, x, y, w, h, r) {
   r = Math.min(r, w / 2, h / 2);
@@ -381,6 +441,7 @@ function init() {
 
   buildFontOptions();
   buildPhrases();
+  buildTemplatePop();
   renderColorCards();
   renderDecorSwatches();
   bindEvents();
@@ -582,6 +643,73 @@ function toggleLayoutLock() {
   }
   const b = $('btn-lock-layout'); if (b) b.classList.toggle('locked', layoutLocked);
 }
+
+function applyTemplate(tpl) {
+  const images = canvas.getObjects('image').filter(o => !o.isSticker);
+  if (!images.length) { showToast('先上传照片再套用模板'); return; }
+
+  /* Resolve slots — dynamic templates adapt to photo count; static have fixed grids */
+  let slots;
+  if      (tpl.dynamic === 'magazine') slots = magazineSlots(images.length);
+  else if (tpl.dynamic === 'surround') slots = surroundSlots(images.length);
+  else if (tpl.dynamic === 'poster')   slots = posterSlots(images.length);
+  else if (tpl.dynamic === 'strip')    slots = stripSlots(images.length);
+  else if (tpl.dynamic === 'grid')     slots = gridSlots(images.length);
+  else slots = tpl.slots;
+
+  const n = Math.min(images.length, slots.length);
+
+  /* Warn when count mismatches a static template */
+  if (!tpl.dynamic && images.length !== slots.length) {
+    const diff = images.length - slots.length;
+    showToast(diff > 0
+      ? `模板推荐 ${slots.length} 张，多余的 ${diff} 张未排布`
+      : `模板推荐 ${slots.length} 张，当前只有 ${images.length} 张`);
+  }
+
+  suppressCommit = true;
+  const shuffled = shuffle(images).slice(0, n);
+  slots.slice(0, n).forEach((s, i) => {
+    const frame = { x: s.x * CANVAS_W, y: s.y * CANVAS_H, w: s.w * CANVAS_W, h: s.h * CANVAS_H };
+    placeInSlot(shuffled[i], { base: frame, mx: frame.w * 0.02, my: frame.h * 0.02 });
+  });
+  shuffle(shuffled).forEach(img => canvas.sendToBack(img));
+  canvas.discardActiveObject();
+  canvas.requestRenderAll();
+  suppressCommit = false; commit();
+  savedSlots = shuffled.map(img => normSlot(img.frameMeta || img.frameRect));
+  layoutLocked = false;
+  const btn = $('btn-lock-layout'); if (btn) btn.classList.remove('locked');
+}
+function buildTemplatePop() {
+  const pop = $('template-pop'); if (!pop) return;
+  TEMPLATES.forEach(tpl => {
+    const item = document.createElement('div');
+    item.className = 'tpl-item';
+    const thumb = document.createElement('div');
+    thumb.className = 'tpl-thumb';
+    /* Use real slots for static; characteristic photo count for dynamic previews */
+    const previewSlots = tpl.slots
+      || (tpl.dynamic === 'magazine' ? magazineSlots(4)
+        : tpl.dynamic === 'surround' ? surroundSlots(5)
+        : tpl.dynamic === 'poster'   ? posterSlots(3)
+        : tpl.dynamic === 'strip'    ? stripSlots(3)
+        : gridSlots(4));
+    previewSlots.forEach(s => {
+      const slot = document.createElement('div');
+      slot.className = 'tpl-slot';
+      slot.style.cssText = `left:${s.x*100}%;top:${s.y*100}%;width:${s.w*100}%;height:${s.h*100}%`;
+      thumb.appendChild(slot);
+    });
+    const label = document.createElement('div');
+    label.className = 'tpl-label cn';
+    label.textContent = tpl.dynamic ? tpl.name : `${tpl.name} ×${tpl.count}`;
+    item.appendChild(thumb); item.appendChild(label);
+    item.addEventListener('click', () => { applyTemplate(tpl); pop.classList.remove('show'); });
+    pop.appendChild(item);
+  });
+}
+
 /* ── Alignment hints while dragging stickers / text / decor ──
    Pure feedback: thin dashed guides appear when edges or centres line up
    with the canvas, photo frames, or other floating elements. No snapping. */
@@ -1028,29 +1156,30 @@ function showCtxMenu(x, y, target) {
 function hideCtxMenu() { $('ctx-menu').style.display = 'none'; }
 
 /* ── Export ─────────────────────────────────────────────── */
-function exportPNG() {
+function exportAs(format) {
   const btn = $('btn-export');
+  const fmtLabel = format === 'jpeg' ? 'JPG' : format === 'webp' ? 'WebP' : 'PNG';
   btn.disabled = true; btn.textContent = '导出中…';
-  // crisp where it's safe: 2x unless the long edge would exceed 4096px
   const mult = Math.max(CANVAS_W, CANVAS_H) <= 4096 ? 2 : 1;
-  // let the "导出中…" label paint before the synchronous toDataURL blocks the thread
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const curZoom = canvas.getZoom(), curW = canvas.getWidth(), curH = canvas.getHeight();
     canvas.discardActiveObject();
     canvas.setZoom(1); canvas.setWidth(CANVAS_W); canvas.setHeight(CANVAS_H); canvas.renderAll();
     let dataURL;
-    try { dataURL = canvas.toDataURL({ format: 'png', multiplier: mult }); }
+    try { dataURL = canvas.toDataURL({ format, multiplier: mult, quality: format === 'png' ? 1 : 0.92 }); }
     finally {
       canvas.setWidth(curW); canvas.setHeight(curH); canvas.setZoom(curZoom); canvas.renderAll();
-      btn.disabled = false; btn.textContent = '导出 PNG';
+      btn.disabled = false; btn.textContent = '导出';
     }
     if (!dataURL) return;
+    const ext = format === 'jpeg' ? 'jpg' : format;
     const a = document.createElement('a');
-    a.download = 'vision-board-wallpaper.png'; a.href = dataURL;
+    a.download = `vision-board.${ext}`; a.href = dataURL;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    showToast('已导出 ' + (CANVAS_W * mult) + ' × ' + (CANVAS_H * mult) + ' PNG');
+    showToast(`已导出 ${CANVAS_W * mult} × ${CANVAS_H * mult} ${fmtLabel}`);
   }));
 }
+function exportPNG() { exportAs('png'); }
 
 /* ══════════ Welcome — immersive landing ══════════ */
 function initWelcome() {
@@ -1603,7 +1732,7 @@ function bindEvents() {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { if (typing || editing) return; e.preventDefault(); redo(); return; }
     if (typing || editing) return;
     if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); deleteActive(); }
-    if (e.key === 'Escape') { hideCtxMenu(); if (picking) stopEyedropper(); const mp = $('mosaic-pop'); if (mp) mp.classList.remove('show'); }
+    if (e.key === 'Escape') { hideCtxMenu(); if (picking) stopEyedropper(); ['mosaic-pop','template-pop','export-pop','shortcuts-panel'].forEach(id => { const el = $(id); if (el) el.classList.remove('show'); }); }
   });
 
   // Right-click menu
@@ -1636,6 +1765,59 @@ function bindEvents() {
   $('mobile-fab').addEventListener('click', () => { app.classList.add('drawer-open'); });
   $('drawer-handle').addEventListener('click', () => { app.classList.remove('drawer-open'); });
   $('canvas-area').addEventListener('click', () => { if (app.classList.contains('drawer-open')) app.classList.remove('drawer-open'); });
+
+  // Template popover
+  const templatePop = $('template-pop');
+  if (templatePop && templatePop.parentElement && templatePop.parentElement.id !== 'app') $('app').appendChild(templatePop);
+  $('btn-template').addEventListener('click', e => {
+    e.stopPropagation();
+    const pop = $('template-pop');
+    if (pop.classList.contains('show')) { pop.classList.remove('show'); return; }
+    pop.classList.add('show');
+    const r = $('btn-template').getBoundingClientRect();
+    pop.style.left = clamp(r.left, 8, window.innerWidth - (pop.offsetWidth || 300) - 8) + 'px';
+    pop.style.top = (r.bottom + 8) + 'px';
+  });
+
+  // Export format popover
+  const exportPop = $('export-pop');
+  if (exportPop && exportPop.parentElement && exportPop.parentElement.id !== 'app') $('app').appendChild(exportPop);
+  $('export-opt-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    const pop = $('export-pop');
+    if (pop.classList.contains('show')) { pop.classList.remove('show'); return; }
+    pop.classList.add('show');
+    const r = $('export-opt-btn').getBoundingClientRect();
+    const pw = pop.offsetWidth || 150;
+    pop.style.left = clamp(r.right - pw, 8, window.innerWidth - pw - 8) + 'px';
+    pop.style.top = (r.bottom + 8) + 'px';
+  });
+  $('export-png').addEventListener('click', () => { exportAs('png'); $('export-pop').classList.remove('show'); });
+  $('export-jpg').addEventListener('click', () => { exportAs('jpeg'); $('export-pop').classList.remove('show'); });
+  $('export-webp').addEventListener('click', () => { exportAs('webp'); $('export-pop').classList.remove('show'); });
+
+  // Global click to close new popovers
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#template-pop') && !e.target.closest('#btn-template'))
+      $('template-pop').classList.remove('show');
+    if (!e.target.closest('#export-pop') && !e.target.closest('#export-opt-btn'))
+      $('export-pop').classList.remove('show');
+    if (!e.target.closest('#shortcuts-panel') && !e.target.closest('#btn-shortcuts'))
+      $('shortcuts-panel').classList.remove('show');
+  });
+
+  // Keyboard shortcuts panel
+  $('btn-shortcuts').addEventListener('click', e => {
+    e.stopPropagation();
+    const panel = $('shortcuts-panel');
+    const nowShowing = panel.classList.toggle('show');
+    if (nowShowing) {
+      const r = $('btn-shortcuts').getBoundingClientRect();
+      const pw = panel.offsetWidth || 240;
+      panel.style.left = clamp(r.right - pw, 8, window.innerWidth - pw - 8) + 'px';
+      panel.style.top = (r.bottom + 10) + 'px';
+    }
+  });
 
   initColorPop();
 }

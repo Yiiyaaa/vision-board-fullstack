@@ -607,7 +607,7 @@ body.picking, body.picking .canvas-area, body.picking canvas { cursor: crosshair
   .app .main { display: block; }
   .app .canvas-area { position: absolute; inset: 58px 0 0 0; }
   .app .sidebar {
-    position: absolute; top: 36px; left: 22px; width: auto; height: auto;
+    position: absolute; top: 36px; left: 22px; width: 204px; height: auto;
     background: transparent; border: none; overflow: visible; z-index: 5;
     display: flex; flex-direction: column; gap: 9px;
   }
@@ -631,41 +631,42 @@ body.picking, body.picking .canvas-area, body.picking canvas { cursor: crosshair
     max-height: 74vh; overflow-y: auto; z-index: 6;
   }
 
-  /* left: only Text, label without the pill border — typography mirrors the Tips label */
+  /* left: Text label — bare text, mirrors Tips label exactly */
   .app #acc-text > summary {
-    background: transparent; border: none; padding: 6px 6px;
+    background: transparent; border: none; padding: 6px 6px; width: auto;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     font-size: 13px; font-weight: 500; letter-spacing: 1.5px; color: var(--text-2);
+    transition: color 0.16s;
   }
   .app #acc-text > summary:hover { background: transparent; color: var(--text); transform: none; }
-  .app #acc-text[open] > summary { background: transparent; color: var(--accent-2); }
-  /* its panel sits below the label on the gradient itself — a light wash,
-     no card border or shadow; the canvas yields the left margin instead.
-     Width mirrors the Tips column (204px), so spacing breathes vertically */
+  .app #acc-text[open] > summary { background: transparent; color: var(--accent-2); border-color: transparent; }
+  /* body: inline below the label, full sidebar width, scrollable, no card */
   .app #acc-text > .acc-body {
-    left: 0; top: calc(100% + 12px); width: 204px;
-    background: rgba(255,255,255,0.22);
-    backdrop-filter: blur(14px) saturate(1.15); -webkit-backdrop-filter: blur(14px) saturate(1.15);
-    border: none; box-shadow: none; border-radius: 14px;
-    max-height: calc(100vh - 168px);
-    padding: 18px 14px 20px;
+    position: static; width: 100%;
+    background: transparent; border: none; box-shadow: none; border-radius: 0;
+    max-height: calc(100vh - 90px); overflow-y: auto; overflow-x: hidden;
+    scrollbar-width: thin; scrollbar-color: rgba(160,130,120,0.25) transparent;
+    padding: 8px 6px 24px;
+    animation: fade 0.2s ease;
   }
-  /* tab row: one line, swipe / scroll sideways, soft fade hinting more */
+  .app #acc-text > .acc-body::-webkit-scrollbar { width: 3px; }
+  .app #acc-text > .acc-body::-webkit-scrollbar-thumb { background: rgba(160,130,120,0.28); border-radius: 99px; }
+  /* tab row: one line, swipe / scroll sideways */
   .app #acc-text .tabs {
-    flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin: 18px 0 16px;
+    flex-wrap: nowrap; overflow-x: auto; gap: 6px; margin: 14px 0 14px;
     padding-bottom: 2px; scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to right, #000 92%, rgba(0,0,0,0.15));
-    mask-image: linear-gradient(to right, #000 92%, rgba(0,0,0,0.15));
+    -webkit-mask-image: linear-gradient(to right, #000 90%, rgba(0,0,0,0.1));
+    mask-image: linear-gradient(to right, #000 90%, rgba(0,0,0,0.1));
   }
   .app #acc-text .tabs::-webkit-scrollbar { display: none; }
   .app #acc-text .tabs button { flex: 0 0 auto; }
-  /* roomier vertical rhythm inside the narrow panel */
-  .app #acc-text .acc-body textarea#text-input { margin-bottom: 12px; min-height: 70px; }
-  .app #acc-text .acc-body .field { margin-bottom: 16px; }
+  /* vertical rhythm inside the narrow panel */
+  .app #acc-text .acc-body textarea#text-input { margin-bottom: 10px; min-height: 64px; }
+  .app #acc-text .acc-body .field { margin-bottom: 14px; }
   .app #acc-text .acc-body .field.nomb { margin-bottom: 0; }
-  .app #acc-text .acc-body .field-inline { margin-bottom: 16px; }
-  .app #acc-text .acc-body .field-label { margin-bottom: 8px; }
-  .app #acc-text .acc-body .row-2col { gap: 10px; margin-bottom: 16px; }
+  .app #acc-text .acc-body .field-inline { margin-bottom: 14px; }
+  .app #acc-text .acc-body .field-label { margin-bottom: 6px; }
+  .app #acc-text .acc-body .row-2col { gap: 8px; margin-bottom: 14px; }
 
   /* top: contents extracted from the boxes — one flat row of compact pills,
      vertically aligned with the Text / Tips labels so the three zones read as one toolbar */
@@ -713,10 +714,12 @@ body.picking, body.picking .canvas-area, body.picking canvas { cursor: crosshair
 
   /* canvas centered, tucked just under the unified tool row */
   .app .canvas-area { inset: 76px 24px 16px 24px; }
-  /* tips open: canvas yields the right margin so the text sits on the gradient */
+  /* tips open: canvas + pill strip yield the right margin */
   .app.tips-open .canvas-area { right: 252px; }
-  /* text open: canvas yields the left margin for the push panel (mirror of tips) */
+  .app.tips-open .ed-top { right: 252px; }
+  /* text open: canvas + pill strip yield the left margin (mirror of tips) */
   .app.text-open .canvas-area { left: 252px; }
+  .app.text-open .ed-top { left: 252px; }
 }
 
 /* refined hover tooltip (rounded, hairline, translucent) */
@@ -811,3 +814,77 @@ body.picking, body.picking .canvas-area, body.picking canvas { cursor: crosshair
   outline: 1.5px solid var(--accent-line);
   outline-offset: 2px;
 }
+
+/* ════════════ Export-format popover ════════════ */
+.export-grp { display: flex; align-items: center; gap: 0; }
+.export-grp #btn-export { border-radius: 999px 0 0 999px; border-right: none; padding: 8px 14px; }
+.export-grp #export-opt-btn { border-radius: 0 999px 999px 0; padding: 8px 10px; font-size: 10px; line-height: 1; }
+
+.export-pop {
+  position: fixed; z-index: 9000; display: none; width: 148px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(255,255,255,0.65); border-radius: 12px;
+  box-shadow: 0 14px 40px rgba(70,55,65,0.18);
+  padding: 6px;
+}
+.export-pop.show { display: block; animation: fade 0.15s ease; }
+.export-pop button {
+  display: block; width: 100%; text-align: left;
+  background: transparent; border: none; border-radius: 8px;
+  padding: 9px 12px; font-size: 13px; color: #3a352e; cursor: pointer;
+  transition: background 0.12s;
+}
+.export-pop button:hover { background: rgba(255,255,255,0.7); }
+
+/* ════════════ Template layout popover ════════════ */
+.tpl-pop {
+  position: fixed; z-index: 9000;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(255,255,255,0.65); border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(70,55,65,0.18);
+  padding: 10px; flex-wrap: wrap; gap: 8px; width: 290px;
+  display: none;
+}
+.tpl-pop.show { display: flex; animation: fade 0.15s ease; }
+.tpl-item {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; padding: 6px; border-radius: 9px; border: 1px solid transparent;
+  transition: background 0.14s, border-color 0.14s;
+}
+.tpl-item:hover { background: rgba(255,255,255,0.7); border-color: var(--accent-line); }
+.tpl-thumb {
+  position: relative; width: 72px; height: 48px; border-radius: 5px;
+  background: rgba(60,50,45,0.08); overflow: hidden; flex-shrink: 0;
+}
+.tpl-slot {
+  position: absolute; box-sizing: border-box;
+  background: rgba(183,168,185,0.45); border: 1.5px solid rgba(255,255,255,0.7);
+}
+.tpl-label { font-size: 11px; color: #6a625a; white-space: nowrap; }
+
+/* ════════════ Keyboard shortcuts panel ════════════ */
+.shortcuts-panel {
+  position: fixed; z-index: 9000; display: none; width: 238px;
+  background: rgba(255,255,255,0.82);
+  backdrop-filter: blur(20px) saturate(1.2); -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  border: 1px solid rgba(255,255,255,0.65); border-radius: 14px;
+  box-shadow: 0 14px 40px rgba(70,55,65,0.18);
+  padding: 14px 16px;
+}
+.shortcuts-panel.show { display: block; animation: fade 0.15s ease; }
+.sc-title { font-size: 11px; font-weight: 600; letter-spacing: 1.2px; color: #9a9088; text-transform: uppercase; margin-bottom: 10px; }
+.sc-grid { display: flex; flex-direction: column; gap: 7px; }
+.sc-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sc-keys { display: flex; gap: 3px; align-items: center; flex-shrink: 0; }
+.sc-desc { font-size: 12.5px; color: #5a5048; text-align: right; }
+kbd {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.7); border: 1px solid rgba(60,50,45,0.18);
+  border-radius: 5px; box-shadow: 0 1px 2px rgba(60,50,45,0.12);
+  font-family: inherit; font-size: 11px; color: #3a352e;
+  padding: 2px 6px; min-width: 22px; white-space: nowrap;
+}
+.sc-keys.cn, .sc-desc.cn { font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif; }
+.sc-keys span { font-size: 12px; color: #5a5048; }

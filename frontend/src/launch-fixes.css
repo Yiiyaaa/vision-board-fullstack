@@ -1,0 +1,4 @@
+/* Public assets intentionally live at site root on the production deployment. */
+.showcase-image {
+  background-image: url('/showcases/vision-board-grid.jpg');
+}

@@ -96,6 +96,7 @@
         <span class="topbar-sep"></span>
         <button id="btn-undo" class="btn icon" title="撤销 (Ctrl+Z)" disabled>&#8630;</button>
         <button id="btn-redo" class="btn icon" title="重做 (Ctrl+Y)" disabled>&#8631;</button>
+        <button id="btn-shortcuts" class="btn icon" title="键盘快捷键">?</button>
         <span class="topbar-sep"></span>
         <button id="btn-upload" class="btn cn">上传图片</button>
         <div class="mosaic-group">
@@ -111,8 +112,12 @@
             <div class="hint-text cn" id="edge-hint"></div>
           </div>
         </div>
+        <button id="btn-template" class="btn cn">布局模板</button>
         <button id="btn-lock-layout" class="btn cn" title="保持当前槽位结构,自动拼贴只重新分配图片">固定布局</button>
-        <button id="btn-export" class="btn btn-primary cn">导出 PNG</button>
+        <div class="export-grp">
+          <button id="btn-export" class="btn cn">导出</button>
+          <button id="export-opt-btn" class="btn caret-btn" title="选择格式">▾</button>
+        </div>
       </div>
     </div>
 
@@ -399,6 +404,30 @@
 
     <!-- Mobile: open editor drawer -->
     <button id="mobile-fab" class="mobile-fab cn">✎ 编辑面板</button>
+
+    <!-- Template layout popover (built by JS) -->
+    <div class="tpl-pop" id="template-pop"></div>
+
+    <!-- Export format popover -->
+    <div class="export-pop" id="export-pop">
+      <button id="export-png" class="cn">PNG 高清 (2×)</button>
+      <button id="export-jpg" class="cn">JPG 高质量</button>
+      <button id="export-webp" class="cn">WebP</button>
+    </div>
+
+    <!-- Keyboard shortcuts panel -->
+    <div class="shortcuts-panel" id="shortcuts-panel">
+      <div class="sc-title">快捷键</div>
+      <div class="sc-grid">
+        <div class="sc-row"><span class="sc-keys"><kbd>Ctrl</kbd><kbd>Z</kbd></span><span class="sc-desc cn">撤销</span></div>
+        <div class="sc-row"><span class="sc-keys"><kbd>Ctrl</kbd><kbd>Y</kbd></span><span class="sc-desc cn">重做</span></div>
+        <div class="sc-row"><span class="sc-keys"><kbd>Del</kbd></span><span class="sc-desc cn">删除选中</span></div>
+        <div class="sc-row"><span class="sc-keys"><kbd>Esc</kbd></span><span class="sc-desc cn">取消 / 关闭</span></div>
+        <div class="sc-row"><span class="sc-keys cn">双击文字</span><span class="sc-desc cn">进入编辑</span></div>
+        <div class="sc-row"><span class="sc-keys cn">右键</span><span class="sc-desc cn">图层菜单</span></div>
+        <div class="sc-row"><span class="sc-keys cn">拖到另一张</span><span class="sc-desc cn">互换位置</span></div>
+      </div>
+    </div>
   </div>
 
   <!-- Context menu -->
