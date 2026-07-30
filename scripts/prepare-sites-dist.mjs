@@ -1,4 +1,4 @@
-import { cp, rm } from 'node:fs/promises'
+import { cp, mkdir, rm } from 'node:fs/promises'
 import { relative, resolve } from 'node:path'
 
 const source = resolve('frontend/dist')
@@ -9,4 +9,16 @@ if (relative(process.cwd(), destination) !== 'dist') {
 }
 
 await rm(destination, { recursive: true, force: true })
-await cp(source, destination, { recursive: true })
+await mkdir(resolve(destination, 'client'), { recursive: true })
+await mkdir(resolve(destination, 'server'), { recursive: true })
+await mkdir(resolve(destination, '.openai'), { recursive: true })
+
+await cp(source, resolve(destination, 'client'), { recursive: true })
+await cp(
+  resolve('scripts/sites-static-worker.mjs'),
+  resolve(destination, 'server/index.js'),
+)
+await cp(
+  resolve('.openai/hosting.json'),
+  resolve(destination, '.openai/hosting.json'),
+)
