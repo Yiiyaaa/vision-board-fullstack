@@ -2,6 +2,10 @@
 
 一个无需注册、图片不上传的在线愿景板与高清壁纸制作工具。
 
+- 公开官网：https://yiiyaaa.github.io/vision-board-fullstack/
+- 直接进入编辑器：https://yiiyaaa.github.io/vision-board-fullstack/editor/index.html
+- 独立编辑器：https://yiiyaaa.github.io/make-it-visible/
+
 ## 首发架构
 
 - `frontend/`：Vue 3 产品官网，内容完全静态，可独立部署
@@ -27,6 +31,12 @@ npm run preview
 
 ## 部署
 
+### GitHub Pages（当前生产环境）
+
+`.github/workflows/github-pages.yml` 会在 `main` 分支的前端文件变化后自动构建并部署。公开网址为：
+
+https://yiiyaaa.github.io/vision-board-fullstack/
+
 ### Cloudflare Pages
 
 连接本 GitHub 仓库并设置：
@@ -41,6 +51,10 @@ npm run preview
 ### 其他静态托管
 
 任何能托管 `frontend/dist/` 的平台都可以运行，包括 GitHub Pages、Netlify、对象存储静态网站和自有 Nginx。
+
+### Sites 兼容入口
+
+仓库根目录的轻量构建入口负责把 `frontend/dist/` 复制为根目录 `dist/`，供要求从项目根目录构建的托管环境使用；公开官网仍由 GitHub Pages 提供。
 
 ## 发布前检查
 
